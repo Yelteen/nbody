@@ -23,6 +23,25 @@ typedef struct
   double ay;
 } particle_t;
 
+class QuadTreeNode
+{
+  public:
+    double mass;
+    double com_x;
+    double com_y;
+    double width;
+    double height;
+    QuadTreeNode* NW;
+    QuadTreeNode* NE;
+    QuadTreeNode* SW;
+    QuadTreeNode* SE;
+    QuadTreeNode(QuadTreeNode parent);
+    ~QuadTreeNode();
+    bool isRoot();
+    bool isExternal();
+    void insert(particle_t* p);
+}
+
 //
 //  timing routines
 //
@@ -33,7 +52,8 @@ double read_timer( );
 //
 void set_size( int n );
 void init_particles( int n, particle_t *p );
-void apply_force( particle_t &particle, particle_t &neighbor , double *dmin, double *davg, int *navg);
+void apply_force( particle_t &particle, particle_t &neighbor,
+                  double *dmin, double *davg, int *navg);
 void move( particle_t &p );
 
 
@@ -48,6 +68,7 @@ void save( FILE *f, int n, particle_t *p );
 //
 int find_option( int argc, char **argv, const char *option );
 int read_int( int argc, char **argv, const char *option, int default_value );
-char *read_string( int argc, char **argv, const char *option, char *default_value );
+char *read_string( int argc, char **argv, const char *option, 
+                   char *default_value );
 
 #endif

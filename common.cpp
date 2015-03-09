@@ -19,6 +19,14 @@ double size;
 #define min_r   (cutoff/100)
 #define dt      0.0005
 
+QuadTreeNode::QuadTreeNode(QuadTreeNode* parent) 
+{
+  this->NW = NULL;
+  this->NE = NULL;
+  this->SW = NULL;
+  this->SE = NULL;
+}
+
 //
 //  timer
 //
