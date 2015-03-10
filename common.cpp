@@ -20,44 +20,66 @@ double size;
 #define dt      0.0005
 
 QuadTreeNode::QuadTreeNode(QuadTreeNode* parent, double x, double y, 
-                           double width, double height); 
+                           double width, double height)
 {
-  this->parent = parent;
-  this->x      = x;
-  this->y      = y;
-  this->width  = width;
-  this->height = height;
+  this->parent   = parent;
+  this->x        = x;
+  this->y        = y;
+  this->width    = width;
+  this->height   = height;
   this->external = true;
-  this->empty    = true;
-  this->NW = NULL;
-  this->NE = NULL;
-  this->SW = NULL;
-  this->SE = NULL;
+  this->NW       = NULL;
+  this->NE       = NULL;
+  this->SW       = NULL;
+  this->SE       = NULL;
+  this->wn       = width/2;        // new quadrant width
+  this->hn       = height/2;       // new quadrant height
+  this->xmid     = x + this->wn;   // x-midpoint of this quadrant
+  this->ymid     = y + this->hn;   // y-midpoint of this quadrant
 }
 
 void QuadTreeNode::insert(particle_t* p)
 {
-  if (this->empty)
+  
+  // if this quadtree is external :
+  if (this->external)
   {
-    this->p = p;
-    this->empty = false;
-  } 
-  else if (this->external)
+    // if this quadtree is empty, put the particle in it :
+    if (this->p == NULL)
+    {
+      this->p = p;
+    }
+    
+    // otherwise we need to subdivide and re-insert the particle :
+    else
+    {
+      double wn   = this->width/2;  // new quadrant width
+      double hn   = this->height/2; // new quadrant height
+      double xmid = this->x + wn;   // x-midpoint of this quadrant
+      double ymid = this->y + hn;   // y-midpoint of this quadrant
+      
+      // subdivide this quadtee :
+      this->NW = new QuadTreeNode(this, this->x, this->y, wn, hn);
+      this->NE = new QuadTreeNode(this, xmid,    this->y, wn, hn);
+      this->SW = new QuadTreeNode(this, this->x, ymid,    wn, hn);
+      this->SE = new QuadTreeNode(this, xmid,    ymid,    wn, hn);
+      
+      // it is no longer external :
+      this->external = false;
+      
+      // re-insert the particle in the correct quadrant :
+      this->insert(this->p);
+      this->insert(p);
+    }
+  }
+  // else we insert the particles in the appropriate quadrant :
+  else
   {
-    double wn   = this->width/2;
-    double hn   = this->height/2;
-    double xmid = this->x + wn;
-    double ymid = this->y + hn;
+    double xmid = this->x + this->width/2;   // x-midpoint of this quadrant
+    double ymid = this->y + this->height/2;  // y-midpoint of this quadrant
     
-    this->NW = &QuadTreeNode(this, this->x, this->y, wn, hn);
-    this->NE = &QuadTreeNode(this, xmid,    this->y, wn, hn);
-    this->SW = &QuadTreeNode(this, this->x, ymid,    wn, hn);
-    this->SE = &QuadTreeNode(this, xmid,    ymid,    wn, hn);
-
-    this->external = false;
-    
-    bool pltx = p->x < xm;
-    bool plty = p->y < ym;
+    bool pltx = p->x < xmid;
+    bool plty = p->y < ymid;
     
     if (pltx && plty)
     {

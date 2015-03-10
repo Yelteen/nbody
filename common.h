@@ -28,7 +28,6 @@ class QuadTreeNode
   public:
     QuadTreeNode(QuadTreeNode* parent, double x, double y, 
                  double width, double height);
-    ~QuadTreeNode();
     bool isRoot();
     bool isExternal();
     void insert(particle_t* p);
@@ -41,14 +40,17 @@ class QuadTreeNode
     double height;
     double x;
     double y;
+    double wn;
+    double hn;
+    double xmid;
+    double ymid;
     bool external;
-    bool empty;
     QuadTreeNode* NW;
     QuadTreeNode* NE;
     QuadTreeNode* SW;
     QuadTreeNode* SE;
     QuadTreeNode* parent;
-}
+};
 
 //
 //  timing routines
