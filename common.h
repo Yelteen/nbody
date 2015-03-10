@@ -23,17 +23,20 @@ typedef struct
   double ay;
 } particle_t;
 
+//
+// QuadTree data structure
+//
 class QuadTreeNode
 {
   public:
     QuadTreeNode(QuadTreeNode* parent, double x, double y, 
                  double width, double height);
-    bool isRoot();
-    bool isExternal();
     void insert(particle_t* p);
+    void computeCOM();
+    void computeF(particle_t* p, double* dmin, double* davg, int* navg);
   private:
     particle_t* p;
-    double mass;
+    double m;
     double com_x;
     double com_y;
     double width;

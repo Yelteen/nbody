@@ -19,53 +19,54 @@ double size;
 #define min_r   (cutoff/100)
 #define dt      0.0005
 
+//
+//  quadtree constructor :
+//
 QuadTreeNode::QuadTreeNode(QuadTreeNode* parent, double x, double y, 
                            double width, double height)
 {
-  this->parent   = parent;
-  this->x        = x;
-  this->y        = y;
-  this->width    = width;
-  this->height   = height;
-  this->external = true;
-  this->NW       = NULL;
-  this->NE       = NULL;
-  this->SW       = NULL;
-  this->SE       = NULL;
-  this->wn       = width/2;        // new quadrant width
-  this->hn       = height/2;       // new quadrant height
-  this->xmid     = x + this->wn;   // x-midpoint of this quadrant
-  this->ymid     = y + this->hn;   // y-midpoint of this quadrant
+  parent   = parent;
+  x        = x;
+  y        = y;
+  width    = width;
+  height   = height;
+  m        = 0.0;
+  external = true;
+  NW       = NULL;
+  NE       = NULL;
+  SW       = NULL;
+  SE       = NULL;
+  wn       = width/2;        // new quadrant width
+  hn       = height/2;       // new quadrant height
+  xmid     = x + wn;         // x-midpoint of this quadrant
+  ymid     = y + hn;         // y-midpoint of this quadrant
 }
 
+//
+// insert a new particle into the quadtree :
+//
 void QuadTreeNode::insert(particle_t* p)
 {
-  
   // if this quadtree is external :
-  if (this->external)
+  if (external)
   {
     // if this quadtree is empty, put the particle in it :
     if (this->p == NULL)
     {
-      this->p = p;
+      this->p  = p;
+      this->m += mass;
     }
-    
-    // otherwise we need to subdivide and re-insert the particle :
+    // otherwise we need to subdivide and re-insert the particles :
     else
     {
-      double wn   = this->width/2;  // new quadrant width
-      double hn   = this->height/2; // new quadrant height
-      double xmid = this->x + wn;   // x-midpoint of this quadrant
-      double ymid = this->y + hn;   // y-midpoint of this quadrant
-      
       // subdivide this quadtee :
-      this->NW = new QuadTreeNode(this, this->x, this->y, wn, hn);
-      this->NE = new QuadTreeNode(this, xmid,    this->y, wn, hn);
-      this->SW = new QuadTreeNode(this, this->x, ymid,    wn, hn);
-      this->SE = new QuadTreeNode(this, xmid,    ymid,    wn, hn);
+      NW = new QuadTreeNode(this, x,    y,    wn, hn);
+      NE = new QuadTreeNode(this, xmid, y,    wn, hn);
+      SW = new QuadTreeNode(this, x,    ymid, wn, hn);
+      SE = new QuadTreeNode(this, xmid, ymid, wn, hn);
       
       // it is no longer external :
-      this->external = false;
+      external = false;
       
       // re-insert the particle in the correct quadrant :
       this->insert(this->p);
@@ -75,30 +76,148 @@ void QuadTreeNode::insert(particle_t* p)
   // else we insert the particles in the appropriate quadrant :
   else
   {
-    double xmid = this->x + this->width/2;   // x-midpoint of this quadrant
-    double ymid = this->y + this->height/2;  // y-midpoint of this quadrant
-    
     bool pltx = p->x < xmid;
     bool plty = p->y < ymid;
     
-    if (pltx && plty)
+    if (pltx and plty)
     {
-      this->NW->insert(p);
+      NW->insert(p);
     }
-    else if (not pltx && plty)
+    else if (not pltx and plty)
     {
-      this->NE->insert(p);
+      NE->insert(p);
     }
-    else if (pltx && not plty)
+    else if (pltx and not plty)
     {
-      this->SW->insert(p);
+      SW->insert(p);
     }
-    else if (not pltx && not plty)
+    else if (not pltx and not plty)
     {
-      this->SE->insert(p);
+      SE->insert(p);
     }
   }
 }
+
+//
+//  update a quadtree's center of mass :
+//
+void QuadTreeNode::computeCOM()
+{
+  // if this is an external node :
+  if (external)
+  {
+    // and there is a particle in it :
+    if (this->p !=NULL)
+    {
+      this->m     = mass;
+      this->com_x = this->p->x;
+      this->com_y = this->p->y;
+    }
+    // otherwise mass is zero :
+    else
+    {
+      this->m     = 0.0;
+      this->com_x = 0.0;
+      this->com_y = 0.0;
+    }
+  }
+  // otherwise recurse on each quadrant :
+  else
+  {
+    // compute center of mass for each quadrant :
+    NW->computeCOM();
+    NE->computeCOM();
+    SW->computeCOM();
+    SE->computeCOM();
+    
+    // calculate the cetner of mass for this quadrant :
+    this->m      = NW->m + NE->m + SW->m + SE->m;
+    this->com_x  =   NW->m * NW->com_x
+                   + NE->m * NE->com_x
+                   + SW->m * SW->com_x
+                   + SE->m * SE->com_x;
+    this->com_x /= this->m;
+    this->com_y  =   NW->m * NW->com_y
+                   + NE->m * NE->com_y
+                   + SW->m * SW->com_y
+                   + SE->m * SE->com_y;
+    this->com_y /= this->m;
+  }
+}
+
+//
+// compute the force from this quadrant on a particle :
+// 
+void QuadTreeNode::computeF(particle_t* p,double* dmin,double* davg,int* navg)
+{
+  // if this is an external quadtree node :
+  if (external)
+  {
+    // if the quadrant is not empty and the particles being compared 
+    // are not the same :
+    if (this->p != NULL and this->p != p)
+    {
+      double dx = this->p->x - p->x;
+      double dy = this->p->y - p->y;
+      double r2 = dx*dx + dy*dy;
+      
+      // update the minimum distance between particles :
+      if (r2/(cutoff*cutoff) < *dmin * (*dmin))
+      {
+        *dmin  = sqrt(r2)/cutoff;
+      }
+      (*davg) += sqrt(r2)/cutoff;
+      (*navg) ++;
+      
+      r2       = fmax( r2, min_r*min_r );
+      double r = sqrt( r2 );
+      
+      //
+      //  very simple short-range repulsive force
+      //
+      double coef = ( 1 - cutoff / r ) / r2 / mass;
+      p->ax += coef * dx;
+      p->ay += coef * dy;
+    }
+  }
+  // otherwise evaluate the distance to the center of mass :
+  else
+  {
+    double dx = x - p->x;
+    double dy = y - p->y;
+    double r  = sqrt( dx*dx + dy*dy + 1e-16);
+    
+    // if the distance is within tolerance, treat quadtree as a single body :
+    if (width / r < 0.5)
+    {
+      // update the minimum distance between particles :
+      if (r/cutoff < *dmin)
+      {
+        *dmin  = r/cutoff;
+      }
+      (*davg) += r/cutoff;
+      (*navg) ++;
+      
+      r = fmax( r, min_r );
+      
+      //
+      //  very simple short-range repulsive force
+      //
+      double coef = ( 1 - cutoff / r ) / (r*r*mass);
+      p->ax += coef * dx;
+      p->ay += coef * dy;
+    }
+    // otherwise recurse on each quadrant :
+    else
+    {
+      NW->computeF(p, dmin, davg, navg);
+      NE->computeF(p, dmin, davg, navg);
+      SW->computeF(p, dmin, davg, navg);
+      SE->computeF(p, dmin, davg, navg);
+    }
+  }
+}
+
 
 //
 //  timer
@@ -169,7 +288,7 @@ void init_particles( int n, particle_t *p )
 //  interact two particles
 //
 void apply_force(particle_t &particle, particle_t &neighbor,
-                 double *dmin, double *davg, int *navg)
+                 double* dmin, double* davg, int* navg)
 {
   double dx = neighbor.x - particle.x;
   double dy = neighbor.y - particle.y;

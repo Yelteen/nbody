@@ -25,13 +25,13 @@ int main( int argc, char **argv )
   
   int n = read_int( argc, argv, "-n", 1000 );
 
-  char *savename = read_string( argc, argv, "-o", NULL );
-  char *sumname = read_string( argc, argv, "-s", NULL );
+  char* savename = read_string( argc, argv, "-o", NULL );
+  char* sumname  = read_string( argc, argv, "-s", NULL );
   
-  FILE *fsave = savename ? fopen( savename, "w" ) : NULL;
-  FILE *fsum = sumname ? fopen ( sumname, "a" ) : NULL;
+  FILE* fsave = savename ? fopen( savename, "w" ) : NULL;
+  FILE* fsum  = sumname ? fopen ( sumname, "a" )  : NULL;
 
-  particle_t *particles = (particle_t*) malloc( n * sizeof(particle_t) );
+  particle_t* particles = (particle_t*) malloc( n * sizeof(particle_t) );
   set_size( n );
   init_particles( n, particles );
   
