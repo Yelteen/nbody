@@ -26,20 +26,28 @@ typedef struct
 class QuadTreeNode
 {
   public:
+    QuadTreeNode(QuadTreeNode* parent, double x, double y, 
+                 double width, double height);
+    ~QuadTreeNode();
+    bool isRoot();
+    bool isExternal();
+    void insert(particle_t* p);
+  private:
+    particle_t* p;
     double mass;
     double com_x;
     double com_y;
     double width;
     double height;
+    double x;
+    double y;
+    bool external;
+    bool empty;
     QuadTreeNode* NW;
     QuadTreeNode* NE;
     QuadTreeNode* SW;
     QuadTreeNode* SE;
-    QuadTreeNode(QuadTreeNode parent);
-    ~QuadTreeNode();
-    bool isRoot();
-    bool isExternal();
-    void insert(particle_t* p);
+    QuadTreeNode* parent;
 }
 
 //

@@ -19,12 +19,63 @@ double size;
 #define min_r   (cutoff/100)
 #define dt      0.0005
 
-QuadTreeNode::QuadTreeNode(QuadTreeNode* parent) 
+QuadTreeNode::QuadTreeNode(QuadTreeNode* parent, double x, double y, 
+                           double width, double height); 
 {
+  this->parent = parent;
+  this->x      = x;
+  this->y      = y;
+  this->width  = width;
+  this->height = height;
+  this->external = true;
+  this->empty    = true;
   this->NW = NULL;
   this->NE = NULL;
   this->SW = NULL;
   this->SE = NULL;
+}
+
+void QuadTreeNode::insert(particle_t* p)
+{
+  if (this->empty)
+  {
+    this->p = p;
+    this->empty = false;
+  } 
+  else if (this->external)
+  {
+    double wn   = this->width/2;
+    double hn   = this->height/2;
+    double xmid = this->x + wn;
+    double ymid = this->y + hn;
+    
+    this->NW = &QuadTreeNode(this, this->x, this->y, wn, hn);
+    this->NE = &QuadTreeNode(this, xmid,    this->y, wn, hn);
+    this->SW = &QuadTreeNode(this, this->x, ymid,    wn, hn);
+    this->SE = &QuadTreeNode(this, xmid,    ymid,    wn, hn);
+
+    this->external = false;
+    
+    bool pltx = p->x < xm;
+    bool plty = p->y < ym;
+    
+    if (pltx && plty)
+    {
+      this->NW->insert(p);
+    }
+    else if (not pltx && plty)
+    {
+      this->NE->insert(p);
+    }
+    else if (pltx && not plty)
+    {
+      this->SW->insert(p);
+    }
+    else if (not pltx && not plty)
+    {
+      this->SE->insert(p);
+    }
+  }
 }
 
 //
@@ -64,7 +115,9 @@ void init_particles( int n, particle_t *p )
   
   int *shuffle = (int*)malloc( n * sizeof(int) );
   for( int i = 0; i < n; i++ )
+  {
     shuffle[i] = i;
+  }
   
   for( int i = 0; i < n; i++ ) 
   {
