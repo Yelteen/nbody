@@ -31,16 +31,19 @@ int main( int argc, char **argv )
   FILE *fsave    = savename ? fopen( savename, "w" ) : NULL;
   FILE *fsum     = sumname ?  fopen( sumname, "a" )  : NULL;      
 
-  particle_t *particles = (particle_t*) malloc( n * sizeof(particle_t) );
-  set_size( n );
+  particle_t* particles = (particle_t*) malloc( n * sizeof(particle_t) );
+  double width          = set_size( n );
   init_particles( n, particles );
+
+  QuadTreeNode* root;
+  
 
   //
   //  simulate a number of time steps
   //
   double simulation_time = read_timer();
 
-  #pragma omp parallel private(dmin) 
+  #pragma omp parallel private(dmin, root)
   {
     numthreads = omp_get_num_threads();
     for( int step = 0; step < 1000; step++ )
@@ -48,6 +51,12 @@ int main( int argc, char **argv )
       navg = 0;
       davg = 0.0;
 	    dmin = 1.0;
+      //
+      // initialize the quadtree :
+      //
+      root    = new QuadTreeNode(NULL, 0.0, 0.0, width, width);
+      root->init_particles( particles, n );
+      root->computeCOM();
       
       //
       //  compute all forces
@@ -56,10 +65,7 @@ int main( int argc, char **argv )
       for( int i = 0; i < n; i++ )
       {
         particles[i].ax = particles[i].ay = 0;
-        for (int j = 0; j < n; j++ )
-        {
-          apply_force( particles[i], particles[j],&dmin,&davg,&navg);
-        }
+        root->computeF( &particles[i], &dmin, &davg, &navg );
       }
 	  
       //
@@ -70,6 +76,15 @@ int main( int argc, char **argv )
       {
         move( particles[i] );
       }
+    
+      ////
+      //// re-init the quadtree with new particle positions :
+      ////
+      //#pragma omp barrier
+      //delete root;
+      //root = new QuadTreeNode(NULL, 0.0, 0.0, width, width);
+      //root->init_particles( particles, n );
+      //root->computeCOM();
     
       if( find_option( argc, argv, "-no" ) == -1 ) 
       {
