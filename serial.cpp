@@ -9,8 +9,8 @@
 //
 int main( int argc, char **argv )
 {    
-  int navg,nabsavg = 0;
-  double davg,dmin, absmin=1.0, absavg=0.0;
+  int    navg, nabsavg = 0;
+  double davg, dmin, absmin=1.0, absavg=0.0;
 
   if( find_option( argc, argv, "-h" ) >= 0 )
   {
@@ -41,7 +41,7 @@ int main( int argc, char **argv )
   //
   //  simulate a number of time steps
   //
-  double simulation_time = read_timer( );
+  double simulation_time = read_timer();
 
   for( int step = 0; step < NSTEPS; step++ )
   {
@@ -53,6 +53,7 @@ int main( int argc, char **argv )
     //
     for( int i = 0; i < n; i++ )
     {
+      //printf(":::::: step = %i, i = %i ::::::\n", step, i);
       particles[i].ax = particles[i].ay = 0;
       root->computeF( &particles[i], &dmin, &davg, &navg);
     }
@@ -64,6 +65,9 @@ int main( int argc, char **argv )
     {
       move( particles[i] );
     }
+
+    delete root;
+    root  = new QuadTreeNode(NULL, 0.0, 0.0, width, width);
     root->init_particles( particles, n );
     root->computeCOM();
 
@@ -74,7 +78,7 @@ int main( int argc, char **argv )
       //
       if (navg)
       {
-        absavg +=  davg/navg;
+        absavg += davg/navg;
         nabsavg++;
       }
       if (dmin < absmin) absmin = dmin;
@@ -88,7 +92,7 @@ int main( int argc, char **argv )
       }
     }
   }
-  simulation_time = read_timer( ) - simulation_time;
+  simulation_time = read_timer() - simulation_time;
   
   printf( "n = %d, simulation time = %g seconds", n, simulation_time);
 

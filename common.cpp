@@ -25,22 +25,24 @@ double size;
 QuadTreeNode::QuadTreeNode(QuadTreeNode* parent, double x, double y, 
                            double width, double height)
 {
-  parent   = parent;
-  x        = x;
-  y        = y;
-  width    = width;
-  height   = height;
-  m        = 0.0;
-  external = true;
-  p        = NULL;
-  NW       = NULL;
-  NE       = NULL;
-  SW       = NULL;
-  SE       = NULL;
-  wn       = width/2;        // new quadrant width
-  hn       = height/2;       // new quadrant height
-  xmid     = x + wn;         // x-midpoint of this quadrant
-  ymid     = y + hn;         // y-midpoint of this quadrant
+  this->parent   = parent;
+  this->x        = x;
+  this->y        = y;
+  this->width    = width;
+  this->height   = height;
+  this->m        = 0.0;
+  this->com_x    = 0.0;
+  this->com_y    = 0.0;
+  this->external = true;
+  this->p        = NULL;
+  this->NW       = NULL;
+  this->NE       = NULL;
+  this->SW       = NULL;
+  this->SE       = NULL;
+  this->wn       = width/2;        // new quadrant width
+  this->hn       = height/2;       // new quadrant height
+  this->xmid     = x + this->wn;   // x-midpoint of this quadrant
+  this->ymid     = y + this->hn;   // y-midpoint of this quadrant
 }
 
 //
@@ -54,8 +56,7 @@ void QuadTreeNode::insert(particle_t* p)
     // if this quadtree is empty, put the particle in it :
     if (this->p == NULL)
     {
-      this->p  = p;
-      this->m += mass;
+      this->p = p;
     }
     // otherwise we need to subdivide and re-insert the particles :
     else
@@ -67,13 +68,10 @@ void QuadTreeNode::insert(particle_t* p)
       this->SE = new QuadTreeNode(this, xmid, ymid, wn, hn);
       
       // it is no longer external :
-      external = false;
+      this->external = false;
       
       // re-insert the particle in the correct quadrant :
-      if (this->p != NULL)
-      {
-        this->insert(this->p);
-      }
+      this->insert(this->p);
       this->insert(p);
     }
   }
@@ -128,13 +126,6 @@ void QuadTreeNode::computeCOM()
       this->com_x = this->p->x;
       this->com_y = this->p->y;
     }
-    // otherwise mass is zero :
-    else
-    {
-      this->m     = 0.0;
-      this->com_x = 0.0;
-      this->com_y = 0.0;
-    }
   }
   // otherwise recurse on each quadrant :
   else
@@ -175,6 +166,11 @@ void QuadTreeNode::computeF(particle_t* p,double* dmin,double* davg,int* navg)
       double dx = this->p->x - p->x;
       double dy = this->p->y - p->y;
       double r2 = dx*dx + dy*dy;
+      //printf("EXTERNAL r2 = %f\n", r2);
+      if( r2 > cutoff*cutoff )
+      {
+        return;
+      }
       
       // update the minimum distance between particles :
       if (r2/(cutoff*cutoff) < *dmin * (*dmin))
@@ -190,7 +186,7 @@ void QuadTreeNode::computeF(particle_t* p,double* dmin,double* davg,int* navg)
       //
       //  very simple short-range repulsive force
       //
-      double coef = ( 1 - cutoff / r ) / r2 / mass;
+      double coef = ( 1 - cutoff / r ) / (r2*mass);
       p->ax += coef * dx;
       p->ay += coef * dy;
     }
@@ -199,13 +195,18 @@ void QuadTreeNode::computeF(particle_t* p,double* dmin,double* davg,int* navg)
   // otherwise evaluate the distance to the center of mass :
   else
   {
-    double dx = x - p->x;
-    double dy = y - p->y;
+    double dx = this->com_x - p->x;
+    double dy = this->com_y - p->y;
     double r  = sqrt( dx*dx + dy*dy );
+    //printf("INTERNAL r = %f\n", r);
     
     // if the distance is within tolerance, treat quadtree as a single body :
     if (width / r < 0.5)
     {
+      if( r > cutoff )
+      {
+        return;
+      }
       // update the minimum distance between particles :
       if (r/cutoff < *dmin)
       {
@@ -219,7 +220,7 @@ void QuadTreeNode::computeF(particle_t* p,double* dmin,double* davg,int* navg)
       //
       //  very simple short-range repulsive force
       //
-      double coef = ( 1 - cutoff / r ) / (r*r*mass);
+      double coef = ( 1 - cutoff / r ) / (r*r*this->m);
       p->ax += coef * dx;
       p->ay += coef * dy;
     }
@@ -227,10 +228,10 @@ void QuadTreeNode::computeF(particle_t* p,double* dmin,double* davg,int* navg)
     // otherwise recurse on each quadrant :
     else
     {
-      NW->computeF(p, dmin, davg, navg);
-      NE->computeF(p, dmin, davg, navg);
-      SW->computeF(p, dmin, davg, navg);
-      SE->computeF(p, dmin, davg, navg);
+      this->NW->computeF(p, dmin, davg, navg);
+      this->NE->computeF(p, dmin, davg, navg);
+      this->SW->computeF(p, dmin, davg, navg);
+      this->SE->computeF(p, dmin, davg, navg);
     }
   }
 }
