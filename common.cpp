@@ -62,40 +62,40 @@ void QuadTreeNode::insert(particle_t* p)
     else
     {
       // subdivide this quadtee :
-      this->NW = new QuadTreeNode(this, x,    y,    wn, hn);
-      this->NE = new QuadTreeNode(this, xmid, y,    wn, hn);
-      this->SW = new QuadTreeNode(this, x,    ymid, wn, hn);
-      this->SE = new QuadTreeNode(this, xmid, ymid, wn, hn);
+      NW = new QuadTreeNode(this, x,    y,    wn, hn);
+      NE = new QuadTreeNode(this, xmid, y,    wn, hn);
+      SW = new QuadTreeNode(this, x,    ymid, wn, hn);
+      SE = new QuadTreeNode(this, xmid, ymid, wn, hn);
       
       // it is no longer external :
-      this->external = false;
+      external = false;
       
       // re-insert the particle in the correct quadrant :
-      this->insert(this->p);
-      this->insert(p);
+      insert(this->p);
+      insert(p);
     }
   }
   // else we insert the particles in the appropriate quadrant :
   else
   {
-    bool pltx = p->x < this->xmid;
-    bool plty = p->y < this->ymid;
+    bool pltx = p->x < xmid;
+    bool plty = p->y < ymid;
     
     if (pltx and plty)
     {
-      this->NW->insert(p);
+      NW->insert(p);
     }
     else if (not pltx and plty)
     {
-      this->NE->insert(p);
+      NE->insert(p);
     }
     else if (pltx and not plty)
     {
-      this->SW->insert(p);
+      SW->insert(p);
     }
     else if (not pltx and not plty)
     {
-      this->SE->insert(p);
+      SE->insert(p);
     }
   }
 }
@@ -120,11 +120,11 @@ void QuadTreeNode::computeCOM()
   if (external)
   {
     // and there is a particle in it :
-    if (this->p !=NULL)
+    if (p !=NULL)
     {
-      this->m     = mass;
-      this->com_x = this->p->x;
-      this->com_y = this->p->y;
+      m     = mass;
+      com_x = p->x;
+      com_y = p->y;
     }
   }
   // otherwise recurse on each quadrant :
@@ -137,17 +137,17 @@ void QuadTreeNode::computeCOM()
     SE->computeCOM();
     
     // calculate the cetner of mass for this quadrant :
-    this->m      = NW->m + NE->m + SW->m + SE->m;
-    this->com_x  =   NW->m * NW->com_x
-                   + NE->m * NE->com_x
-                   + SW->m * SW->com_x
-                   + SE->m * SE->com_x;
-    this->com_x /= this->m;
-    this->com_y  =   NW->m * NW->com_y
-                   + NE->m * NE->com_y
-                   + SW->m * SW->com_y
-                   + SE->m * SE->com_y;
-    this->com_y /= this->m;
+    m      = NW->m + NE->m + SW->m + SE->m;
+    com_x  =   NW->m * NW->com_x
+             + NE->m * NE->com_x
+             + SW->m * SW->com_x
+             + SE->m * SE->com_x;
+    com_x /= m;
+    com_y  =   NW->m * NW->com_y
+             + NE->m * NE->com_y
+             + SW->m * SW->com_y
+             + SE->m * SE->com_y;
+    com_y /= m;
   }
 }
 
@@ -195,8 +195,8 @@ void QuadTreeNode::computeF(particle_t* p,double* dmin,double* davg,int* navg)
   // otherwise evaluate the distance to the center of mass :
   else
   {
-    double dx = this->com_x - p->x;
-    double dy = this->com_y - p->y;
+    double dx = com_x - p->x;
+    double dy = com_y - p->y;
     double r  = sqrt( dx*dx + dy*dy );
     //printf("INTERNAL r = %f\n", r);
     
@@ -220,7 +220,7 @@ void QuadTreeNode::computeF(particle_t* p,double* dmin,double* davg,int* navg)
       //
       //  very simple short-range repulsive force
       //
-      double coef = ( 1 - cutoff / r ) / (r*r*this->m);
+      double coef = ( 1 - cutoff / r ) / (r*r*m);
       p->ax += coef * dx;
       p->ay += coef * dy;
     }
@@ -228,10 +228,10 @@ void QuadTreeNode::computeF(particle_t* p,double* dmin,double* davg,int* navg)
     // otherwise recurse on each quadrant :
     else
     {
-      this->NW->computeF(p, dmin, davg, navg);
-      this->NE->computeF(p, dmin, davg, navg);
-      this->SW->computeF(p, dmin, davg, navg);
-      this->SE->computeF(p, dmin, davg, navg);
+      NW->computeF(p, dmin, davg, navg);
+      NE->computeF(p, dmin, davg, navg);
+      SW->computeF(p, dmin, davg, navg);
+      SE->computeF(p, dmin, davg, navg);
     }
   }
 }
@@ -243,7 +243,7 @@ void QuadTreeNode::init_particles(particle_t* p, int n )
 {
   for( int i = 0; i < n; i++ ) 
   {
-    this->insert(&p[i]);
+    insert(&p[i]);
   }
 }
 

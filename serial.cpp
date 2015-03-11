@@ -33,8 +33,12 @@ int main( int argc, char **argv )
 
   particle_t* particles = (particle_t*) malloc( n * sizeof(particle_t) );
   double width          = set_size( n );
-  QuadTreeNode* root    = new QuadTreeNode(NULL, 0.0, 0.0, width, width);
   init_particles( n, particles );
+  
+  //
+  // initialize the quadtree :
+  //
+  QuadTreeNode* root    = new QuadTreeNode(NULL, 0.0, 0.0, width, width);
   root->init_particles( particles, n );
   root->computeCOM();
   
@@ -55,7 +59,7 @@ int main( int argc, char **argv )
     {
       //printf(":::::: step = %i, i = %i ::::::\n", step, i);
       particles[i].ax = particles[i].ay = 0;
-      root->computeF( &particles[i], &dmin, &davg, &navg);
+      root->computeF( &particles[i], &dmin, &davg, &navg );
     }
 
     //
@@ -65,9 +69,12 @@ int main( int argc, char **argv )
     {
       move( particles[i] );
     }
-
+    
+    //
+    // re-init the quadtree with new particle positions :
+    //
     delete root;
-    root  = new QuadTreeNode(NULL, 0.0, 0.0, width, width);
+    root = new QuadTreeNode(NULL, 0.0, 0.0, width, width);
     root->init_particles( particles, n );
     root->computeCOM();
 
