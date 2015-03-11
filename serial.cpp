@@ -32,8 +32,11 @@ int main( int argc, char **argv )
   FILE* fsum  = sumname ? fopen ( sumname, "a" )  : NULL;
 
   particle_t* particles = (particle_t*) malloc( n * sizeof(particle_t) );
-  set_size( n );
+  double width          = set_size( n );
+  QuadTreeNode* root    = new QuadTreeNode(NULL, 0.0, 0.0, width, width);
   init_particles( n, particles );
+  root->init_particles( particles, n );
+  root->computeCOM();
   
   //
   //  simulate a number of time steps
@@ -51,10 +54,7 @@ int main( int argc, char **argv )
     for( int i = 0; i < n; i++ )
     {
       particles[i].ax = particles[i].ay = 0;
-      for (int j = 0; j < n; j++ )
-      {
-        apply_force( particles[i], particles[j], &dmin, &davg, &navg);
-      }
+      root->computeF( &particles[i], &dmin, &davg, &navg);
     }
 
     //
@@ -64,6 +64,8 @@ int main( int argc, char **argv )
     {
       move( particles[i] );
     }
+    root->init_particles( particles, n );
+    root->computeCOM();
 
     if( find_option( argc, argv, "-no" ) == -1 )
     {

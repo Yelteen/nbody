@@ -6,7 +6,7 @@
 CC = icpc
 MPCC = mpicxx
 OPENMP = -openmp
-CFLAGS = -O3
+CFLAGS = -O3 -g
 LIBS =
 
 

@@ -32,6 +32,7 @@ QuadTreeNode::QuadTreeNode(QuadTreeNode* parent, double x, double y,
   height   = height;
   m        = 0.0;
   external = true;
+  p        = NULL;
   NW       = NULL;
   NE       = NULL;
   SW       = NULL;
@@ -60,42 +61,56 @@ void QuadTreeNode::insert(particle_t* p)
     else
     {
       // subdivide this quadtee :
-      NW = new QuadTreeNode(this, x,    y,    wn, hn);
-      NE = new QuadTreeNode(this, xmid, y,    wn, hn);
-      SW = new QuadTreeNode(this, x,    ymid, wn, hn);
-      SE = new QuadTreeNode(this, xmid, ymid, wn, hn);
+      this->NW = new QuadTreeNode(this, x,    y,    wn, hn);
+      this->NE = new QuadTreeNode(this, xmid, y,    wn, hn);
+      this->SW = new QuadTreeNode(this, x,    ymid, wn, hn);
+      this->SE = new QuadTreeNode(this, xmid, ymid, wn, hn);
       
       // it is no longer external :
       external = false;
       
       // re-insert the particle in the correct quadrant :
-      this->insert(this->p);
+      if (this->p != NULL)
+      {
+        this->insert(this->p);
+      }
       this->insert(p);
     }
   }
   // else we insert the particles in the appropriate quadrant :
   else
   {
-    bool pltx = p->x < xmid;
-    bool plty = p->y < ymid;
+    bool pltx = p->x < this->xmid;
+    bool plty = p->y < this->ymid;
     
     if (pltx and plty)
     {
-      NW->insert(p);
+      this->NW->insert(p);
     }
     else if (not pltx and plty)
     {
-      NE->insert(p);
+      this->NE->insert(p);
     }
     else if (pltx and not plty)
     {
-      SW->insert(p);
+      this->SW->insert(p);
     }
     else if (not pltx and not plty)
     {
-      SE->insert(p);
+      this->SE->insert(p);
     }
   }
+}
+
+//
+// destructor :
+//
+QuadTreeNode::~QuadTreeNode()
+{
+  delete NW;
+  delete NE;
+  delete SW;
+  delete SE;
 }
 
 //
@@ -180,12 +195,13 @@ void QuadTreeNode::computeF(particle_t* p,double* dmin,double* davg,int* navg)
       p->ay += coef * dy;
     }
   }
+  
   // otherwise evaluate the distance to the center of mass :
   else
   {
     double dx = x - p->x;
     double dy = y - p->y;
-    double r  = sqrt( dx*dx + dy*dy + 1e-16);
+    double r  = sqrt( dx*dx + dy*dy );
     
     // if the distance is within tolerance, treat quadtree as a single body :
     if (width / r < 0.5)
@@ -207,6 +223,7 @@ void QuadTreeNode::computeF(particle_t* p,double* dmin,double* davg,int* navg)
       p->ax += coef * dx;
       p->ay += coef * dy;
     }
+    
     // otherwise recurse on each quadrant :
     else
     {
@@ -218,6 +235,16 @@ void QuadTreeNode::computeF(particle_t* p,double* dmin,double* davg,int* navg)
   }
 }
 
+//
+// initialize the particles in the quadtree :
+//
+void QuadTreeNode::init_particles(particle_t* p, int n )
+{
+  for( int i = 0; i < n; i++ ) 
+  {
+    this->insert(&p[i]);
+  }
+}
 
 //
 //  timer
@@ -239,9 +266,10 @@ double read_timer( )
 //
 //  keep density constant
 //
-void set_size( int n )
+double set_size( int n )
 {
   size = sqrt( density * n );
+  return size;
 }
 
 //
