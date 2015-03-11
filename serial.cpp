@@ -102,26 +102,37 @@ int main( int argc, char **argv )
   simulation_time = read_timer() - simulation_time;
   
   printf( "n = %d, simulation time = %g seconds", n, simulation_time);
-
+  
   if( find_option( argc, argv, "-no" ) == -1 )
   {
-    if (nabsavg) absavg /= nabsavg;
+    if (nabsavg)
+    {
+      absavg /= nabsavg;
+    }
     // 
-    //  -the minimum distance absmin between 2 particles during the run 
-    //    of the simulation
-    //  -A Correct simulation will have particles stay at greater than 
-    //    0.4 (of cutoff) with typical values between .7-.8
+    //  -the minimum distance absmin between 2 particles during the run of 
+    //   the simulation
+    //  -A Correct simulation will have particles stay at greater than 0.4 
+    //   (of cutoff) with typical values between .7-.8
     //  -A simulation were particles don't interact correctly will be less 
-    //    than 0.4 (of cutoff) with typical values between .01-.05
+    //   than 0.4 (of cutoff) with typical values between .01-.05
     //
     //  -The average distance absavg is ~.95 when most particles are 
-    //    interacting correctly and ~.66 when no particles are interacting
+    //   interacting correctly and ~.66 when no particles are interacting
     //
     printf( ", absmin = %lf, absavg = %lf", absmin, absavg);
-    if (absmin < 0.4) printf ("\nThe minimum distance is below 0.4 meaning that some particle is not interacting");
-    if (absavg < 0.8) printf ("\nThe average distance is below 0.8 meaning that most particles are not interacting");
+    if (absmin < 0.4)
+    {
+      printf ("\nThe minimum distance is below 0.4 meaning that some ");
+      printf ("particle is not interacting");
+    }
+    if (absavg < 0.8)
+    {
+      printf ("\nThe average distance is below 0.8 meaning that most ");
+      printf ("particles are not interacting");
+    }
   }
-  printf("\n");     
+  printf("\n");
 
   //
   // Printing summary data
@@ -138,7 +149,9 @@ int main( int argc, char **argv )
   {
     fclose( fsum );    
   }
+  
   free( particles );
+  
   if( fsave )
   {
     fclose( fsave );
