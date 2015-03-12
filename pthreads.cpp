@@ -47,7 +47,11 @@ void *thread_routine( void *pthread_id )
     for( int i = first; i < last; i++ )
     {
       particles[i].ax = particles[i].ay = 0;
-      root->computeF( &particles[i], &dmin, &davg, &navg );
+      //root->computeF( &particles[i], &dmin, &davg, &navg );
+      for (int j = 0; j < n; j++ )
+      {
+        apply_force( particles[i], particles[j], &dmin, &davg, &navg );
+      }
     }
     
     pthread_barrier_wait( &barrier );
