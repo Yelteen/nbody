@@ -77,11 +77,12 @@ int main( int argc, char **argv )
   //  initialize and distribute the particles (that's fine to leave 
   //  it unoptimized)
   //
-  set_size( n );
+  double width = set_size( n );
   if( rank == 0 )
   {
     init_particles( n, particles );
   }
+  QuadTreeNode* root;
   MPI_Scatterv( particles, partition_sizes, partition_offsets, PARTICLE, 
                 local, nlocal, PARTICLE, 0, MPI_COMM_WORLD );
   
@@ -98,7 +99,7 @@ int main( int argc, char **argv )
     //  collect all global data locally (not good idea to do)
     //
     MPI_Allgatherv( local, nlocal, PARTICLE, particles, partition_sizes, 
-                    partition_offsets, PARTICLE, MPI_COMM_WORLD );
+                    partition_offsets, PARTICLE, MPI_COMM_WORLD);
     
     //
     //  save current step if necessary (slightly different semantics than in 
@@ -112,16 +113,25 @@ int main( int argc, char **argv )
       }
     }
     
+    MPI_Barrier(MPI_COMM_WORLD); 
+    if( rank == 0 )
+    {
+      root    = new QuadTreeNode(NULL, 0.0, 0.0, width, width);
+      root->init_particles( particles, n );
+      root->computeCOM();
+    }
+    
     //
     //  compute all forces
     //
     for( int i = 0; i < nlocal; i++ )
     {
       local[i].ax = local[i].ay = 0;
-      for (int j = 0; j < n; j++ )
-      {
-        apply_force( local[i], particles[j], &dmin, &davg, &navg );
-      }
+      root->computeF( &local[i], &dmin, &davg, &navg );
+      //for (int j = 0; j < n; j++ )
+      //{
+      //  apply_force( local[i], particles[j], &dmin, &davg, &navg );
+      //}
     }
   
     if( find_option( argc, argv, "-no" ) == -1 )
@@ -154,6 +164,11 @@ int main( int argc, char **argv )
     {
       move( local[i] );
     }
+    //MPI_Barrier(MPI_COMM_WORLD); 
+    //if( rank == 0)
+    //{
+    //  free(root);
+    //}
   }
   simulation_time = read_timer( ) - simulation_time;
 

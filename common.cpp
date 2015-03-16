@@ -46,6 +46,17 @@ QuadTreeNode::QuadTreeNode(QuadTreeNode* parent, double x, double y,
 }
 
 //
+// destructor :
+//
+QuadTreeNode::~QuadTreeNode()
+{
+  delete this->NW;
+  delete this->NE;
+  delete this->SW;
+  delete this->SE;
+}
+
+//
 // insert a new particle into the quadtree :
 //
 void QuadTreeNode::insert(particle_t* p)
@@ -98,17 +109,6 @@ void QuadTreeNode::insert(particle_t* p)
       SE->insert(p);
     }
   }
-}
-
-//
-// destructor :
-//
-QuadTreeNode::~QuadTreeNode()
-{
-  delete NW;
-  delete NE;
-  delete SW;
-  delete SE;
 }
 
 //

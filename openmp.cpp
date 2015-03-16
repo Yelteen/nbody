@@ -24,26 +24,24 @@ int main( int argc, char **argv )
     return 0;
   }
 
-  int n          = read_int( argc, argv, "-n", 1000 );
+  int n          = read_int(    argc, argv, "-n", 1000 );
   char *savename = read_string( argc, argv, "-o", NULL );
   char *sumname  = read_string( argc, argv, "-s", NULL );
 
   FILE *fsave    = savename ? fopen( savename, "w" ) : NULL;
-  FILE *fsum     = sumname ?  fopen( sumname, "a" )  : NULL;      
+  FILE *fsum     = sumname  ? fopen( sumname,  "a" ) : NULL;      
 
   particle_t* particles = (particle_t*) malloc( n * sizeof(particle_t) );
   double width          = set_size( n );
   init_particles( n, particles );
-
   QuadTreeNode* root;
-  
 
   //
   //  simulate a number of time steps
   //
   double simulation_time = read_timer();
 
-  #pragma omp parallel private(dmin, root)
+  #pragma omp parallel private(dmin)
   {
     numthreads = omp_get_num_threads();
     for( int step = 0; step < 1000; step++ )
@@ -51,13 +49,18 @@ int main( int argc, char **argv )
       navg = 0;
       davg = 0.0;
 	    dmin = 1.0;
-      //
-      // initialize the quadtree :
-      //
-      root    = new QuadTreeNode(NULL, 0.0, 0.0, width, width);
-      root->init_particles( particles, n );
-      root->computeCOM();
       
+      //
+      // initialize the quadtree with master thread :
+      //
+      #pragma omp master
+      {
+        root    = new QuadTreeNode(NULL, 0.0, 0.0, width, width);
+        root->init_particles( particles, n );
+        root->computeCOM();
+      }
+      #pragma omp barrier
+       
       //
       //  compute all forces
       //
@@ -77,14 +80,14 @@ int main( int argc, char **argv )
         move( particles[i] );
       }
     
-      ////
-      //// re-init the quadtree with new particle positions :
-      ////
-      //#pragma omp barrier
-      //delete root;
-      //root = new QuadTreeNode(NULL, 0.0, 0.0, width, width);
-      //root->init_particles( particles, n );
-      //root->computeCOM();
+      //
+      // free the quadtree from memory :
+      //
+      #pragma omp barrier
+      {
+        #pragma omp master
+        free(root);
+      }
     
       if( find_option( argc, argv, "-no" ) == -1 ) 
       {
