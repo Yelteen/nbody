@@ -161,11 +161,13 @@ void QuadTreeNode::computeF(particle_t* p,double* dmin,double* davg,int* navg)
   {
     // if the quadrant is not empty and the particles being compared 
     // are not the same :
-    if (this->p != NULL and this->p != p)
+    //if (this->p != NULL and this->p != p)
+    if (this->p != NULL and this->p->x != p->x and this->p->y != p->y)
     {
       double dx = this->p->x - p->x;
       double dy = this->p->y - p->y;
       double r2 = dx*dx + dy*dy;
+      //printf("%f,\t%f,\t%f\n", dx, dy, r2);
       //printf("EXTERNAL r2 = %f\n", r2);
       if( r2 > cutoff*cutoff )
       {
@@ -201,7 +203,7 @@ void QuadTreeNode::computeF(particle_t* p,double* dmin,double* davg,int* navg)
     //printf("INTERNAL r = %f\n", r);
     
     // if the distance is within tolerance, treat quadtree as a single body :
-    if (width / r < 0.5)
+    if (width / r < 0.00)
     {
       if( r > cutoff )
       {
@@ -279,7 +281,7 @@ double set_size( int n )
 void init_particles( int n, particle_t *p )
 {
   srand48( time( NULL ) );
-      
+   
   int sx = (int)ceil(sqrt((double)n));
   int sy = (n+sx-1)/sx;
   

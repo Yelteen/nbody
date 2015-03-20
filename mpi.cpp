@@ -71,7 +71,8 @@ int main( int argc, char **argv )
   //  allocate storage for local partition
   //
   int nlocal        = partition_sizes[rank];
-  particle_t *local = (particle_t*) malloc( nlocal * sizeof(particle_t) );
+  particle_t* local = (particle_t*) malloc( nlocal * sizeof(particle_t) );
+  particle_t* a_p   = NULL;
   
   //
   //  initialize and distribute the particles (that's fine to leave 
@@ -95,11 +96,14 @@ int main( int argc, char **argv )
     navg = 0;
     dmin = 1.0;
     davg = 0.0;
-    // 
-    //  collect all global data locally (not good idea to do)
+
+    //
+    //  collect all global data locally, from each processor's 
+    //    'local' array to 'particles' array :
     //
     MPI_Allgatherv( local, nlocal, PARTICLE, particles, partition_sizes, 
                     partition_offsets, PARTICLE, MPI_COMM_WORLD);
+    //MPI_Bcast( particles, n, PARTICLE, 0, MPI_COMM_WORLD );
     
     //
     //  save current step if necessary (slightly different semantics than in 
@@ -113,17 +117,19 @@ int main( int argc, char **argv )
       }
     }
     
-    MPI_Barrier(MPI_COMM_WORLD); 
-    if( rank == 0 )
-    {
-      root    = new QuadTreeNode(NULL, 0.0, 0.0, width, width);
-      root->init_particles( particles, n );
-      root->computeCOM();
-    }
+    //
+    // initialze particles for this processor's quadtree :
+    //
+    root    = new QuadTreeNode(NULL, 0.0, 0.0, width, width);
+    //root->init_particles( particles, n );
+    root->init_particles( local, nlocal );
+    root->computeCOM();
+    
     
     //
     //  compute all forces
     //
+    /*
     for( int i = 0; i < nlocal; i++ )
     {
       local[i].ax = local[i].ay = 0;
@@ -133,11 +139,38 @@ int main( int argc, char **argv )
       //  apply_force( local[i], particles[j], &dmin, &davg, &navg );
       //}
     }
+    */
+    for( int i = 0; i < n; i++ )
+    {
+      particles[i].ax = particles[i].ay = 0;
+      root->computeF( &particles[i], &dmin, &davg, &navg );
+    }
+    
+    MPI_Barrier( MPI_COMM_WORLD );
+    
+    if( rank == 0 )
+      a_p = (particle_t*) malloc( n_proc*n * sizeof(particle_t) );
+    
+    MPI_Gather( particles, n, PARTICLE, a_p, n, PARTICLE, 0, MPI_COMM_WORLD);
+    if( rank == 0 )
+    {
+      for( int i = 0; i < n; i++)
+      {
+        for( int j = 0; j < n_proc; j++)
+        {
+          //printf("%f\n", particles[i].ax);
+          particles[i].ax += a_p[i + n*j].ax;
+          particles[i].ay += a_p[i + n*j].ay;
+        }
+      }
+    }
+    MPI_Scatterv( particles, partition_sizes, partition_offsets, PARTICLE, 
+                  local, nlocal, PARTICLE, 0, MPI_COMM_WORLD );
   
     if( find_option( argc, argv, "-no" ) == -1 )
     {
       MPI_Reduce(&davg,&rdavg,1,MPI_DOUBLE,MPI_SUM,0,MPI_COMM_WORLD);
-      MPI_Reduce(&navg,&rnavg,1,MPI_INT,MPI_SUM,0,MPI_COMM_WORLD);
+      MPI_Reduce(&navg,&rnavg,1,MPI_INT,   MPI_SUM,0,MPI_COMM_WORLD);
       MPI_Reduce(&dmin,&rdmin,1,MPI_DOUBLE,MPI_MIN,0,MPI_COMM_WORLD);
 
       if (rank == 0)
@@ -158,17 +191,22 @@ int main( int argc, char **argv )
     }
 
     //
-    //  move particles
+    //  move particles, then delete the quadtree :
     //
+    if( rank == 0 )
+    {
+      for( int i = 0; i < n; i++)
+      {
+        move( particles[i] );
+      }
+    }
+    /*
     for( int i = 0; i < nlocal; i++ )
     {
       move( local[i] );
     }
-    //MPI_Barrier(MPI_COMM_WORLD); 
-    //if( rank == 0)
-    //{
-    //  free(root);
-    //}
+    */
+    delete root;
   }
   simulation_time = read_timer( ) - simulation_time;
 
