@@ -30,7 +30,7 @@ class QuadTreeNode
 {
   public:
     QuadTreeNode(QuadTreeNode* parent, double x, double y, 
-                 double width, double height);
+                 double width, double height, float theta);
     ~QuadTreeNode();
     void insert(particle_t* p);
     void computeCOM();
@@ -43,6 +43,7 @@ class QuadTreeNode
     double com_y;
     double width;
     double height;
+    float theta;
     double x;
     double y;
     double wn;

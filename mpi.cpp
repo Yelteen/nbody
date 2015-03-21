@@ -44,7 +44,6 @@ int main( int argc, char **argv )
   FILE *fsave = savename && rank == 0 ? fopen( savename, "w" ) : NULL;
   FILE *fsum  = sumname && rank  == 0 ? fopen ( sumname, "a" ) : NULL;
 
-
   particle_t *particles = (particle_t*) malloc( n * sizeof(particle_t) );
   
   MPI_Datatype PARTICLE;
@@ -79,11 +78,12 @@ int main( int argc, char **argv )
   //  it unoptimized)
   //
   double width = set_size( n );
+  QuadTreeNode* root;
   if( rank == 0 )
   {
+    a_p = (particle_t*) malloc( n_proc*n * sizeof(particle_t) );
     init_particles( n, particles );
   }
-  QuadTreeNode* root;
   MPI_Scatterv( particles, partition_sizes, partition_offsets, PARTICLE, 
                 local, nlocal, PARTICLE, 0, MPI_COMM_WORLD );
   
@@ -120,37 +120,23 @@ int main( int argc, char **argv )
     //
     // initialze particles for this processor's quadtree :
     //
-    root    = new QuadTreeNode(NULL, 0.0, 0.0, width, width);
-    //root->init_particles( particles, n );
+    root    = new QuadTreeNode(NULL, 0.0, 0.0, width, width, 1.0);
     root->init_particles( local, nlocal );
     root->computeCOM();
-    
     
     //
     //  compute all forces
     //
-    /*
-    for( int i = 0; i < nlocal; i++ )
-    {
-      local[i].ax = local[i].ay = 0;
-      root->computeF( &local[i], &dmin, &davg, &navg );
-      //for (int j = 0; j < n; j++ )
-      //{
-      //  apply_force( local[i], particles[j], &dmin, &davg, &navg );
-      //}
-    }
-    */
     for( int i = 0; i < n; i++ )
     {
       particles[i].ax = particles[i].ay = 0;
       root->computeF( &particles[i], &dmin, &davg, &navg );
     }
     
-    MPI_Barrier( MPI_COMM_WORLD );
-    
-    if( rank == 0 )
-      a_p = (particle_t*) malloc( n_proc*n * sizeof(particle_t) );
-    
+    //
+    //  Gather all the particles by rank 0 and update forces, then
+    //    scatter the particles back to each proc's local array :
+    //
     MPI_Gather( particles, n, PARTICLE, a_p, n, PARTICLE, 0, MPI_COMM_WORLD);
     if( rank == 0 )
     {
@@ -158,7 +144,6 @@ int main( int argc, char **argv )
       {
         for( int j = 0; j < n_proc; j++)
         {
-          //printf("%f\n", particles[i].ax);
           particles[i].ax += a_p[i + n*j].ax;
           particles[i].ay += a_p[i + n*j].ay;
         }
@@ -193,19 +178,10 @@ int main( int argc, char **argv )
     //
     //  move particles, then delete the quadtree :
     //
-    if( rank == 0 )
-    {
-      for( int i = 0; i < n; i++)
-      {
-        move( particles[i] );
-      }
-    }
-    /*
-    for( int i = 0; i < nlocal; i++ )
+    for( int i = 0; i < nlocal; i++)
     {
       move( local[i] );
     }
-    */
     delete root;
   }
   simulation_time = read_timer( ) - simulation_time;

@@ -23,13 +23,14 @@ double size;
 //  quadtree constructor :
 //
 QuadTreeNode::QuadTreeNode(QuadTreeNode* parent, double x, double y, 
-                           double width, double height)
+                           double width, double height, float theta)
 {
   this->parent   = parent;
   this->x        = x;
   this->y        = y;
   this->width    = width;
   this->height   = height;
+  this->theta    = theta;
   this->m        = 0.0;
   this->com_x    = 0.0;
   this->com_y    = 0.0;
@@ -73,10 +74,10 @@ void QuadTreeNode::insert(particle_t* p)
     else
     {
       // subdivide this quadtee :
-      NW = new QuadTreeNode(this, x,    y,    wn, hn);
-      NE = new QuadTreeNode(this, xmid, y,    wn, hn);
-      SW = new QuadTreeNode(this, x,    ymid, wn, hn);
-      SE = new QuadTreeNode(this, xmid, ymid, wn, hn);
+      NW = new QuadTreeNode(this, x,    y,    wn, hn, theta);
+      NE = new QuadTreeNode(this, xmid, y,    wn, hn, theta);
+      SW = new QuadTreeNode(this, x,    ymid, wn, hn, theta);
+      SE = new QuadTreeNode(this, xmid, ymid, wn, hn, theta);
       
       // it is no longer external :
       external = false;
@@ -161,7 +162,6 @@ void QuadTreeNode::computeF(particle_t* p,double* dmin,double* davg,int* navg)
   {
     // if the quadrant is not empty and the particles being compared 
     // are not the same :
-    //if (this->p != NULL and this->p != p)
     if (this->p != NULL and this->p->x != p->x and this->p->y != p->y)
     {
       double dx = this->p->x - p->x;
@@ -203,7 +203,7 @@ void QuadTreeNode::computeF(particle_t* p,double* dmin,double* davg,int* navg)
     //printf("INTERNAL r = %f\n", r);
     
     // if the distance is within tolerance, treat quadtree as a single body :
-    if (width / r < 0.00)
+    if (width / r < theta)
     {
       if( r > cutoff )
       {

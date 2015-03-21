@@ -55,7 +55,7 @@ int main( int argc, char **argv )
       //
       #pragma omp master
       {
-        root    = new QuadTreeNode(NULL, 0.0, 0.0, width, width);
+        root    = new QuadTreeNode(NULL, 0.0, 0.0, width, width, 1.0);
         root->init_particles( particles, n );
         root->computeCOM();
       }

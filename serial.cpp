@@ -22,6 +22,7 @@ int main( int argc, char **argv )
     printf( "-no turns off all correctness checks and particle output\n");
     return 0;
   }
+  float theta = 0.7;
   
   int n = read_int( argc, argv, "-n", 1000 );
 
@@ -38,7 +39,7 @@ int main( int argc, char **argv )
   //
   // initialize the quadtree :
   //
-  QuadTreeNode* root    = new QuadTreeNode(NULL, 0.0, 0.0, width, width);
+  QuadTreeNode* root    = new QuadTreeNode(NULL, 0.0, 0.0, width, width, theta);
   root->init_particles( particles, n );
   root->computeCOM();
   
@@ -74,7 +75,7 @@ int main( int argc, char **argv )
     // re-init the quadtree with new particle positions :
     //
     delete root;
-    root = new QuadTreeNode(NULL, 0.0, 0.0, width, width);
+    root = new QuadTreeNode(NULL, 0.0, 0.0, width, width, theta);
     root->init_particles( particles, n );
     root->computeCOM();
 
